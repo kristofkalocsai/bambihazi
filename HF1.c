@@ -11,6 +11,11 @@
 * function:	-reflextest
 *
 *
+*	clock frequency: external xtal, 8MHz
+*
+*
+*
+*
 *
 **************************************************************************************************************
 */
@@ -20,19 +25,26 @@
 #include "dpy_trm_s01.h"			// DPY API
 #include <stdlib.h>
 
-//redefine rand() range for convenience
-#undef RAND_MAX
-#define RAND_MAX 999
 
-unsigned char	led_counter=0;
-unsigned char	err;
-float			temp_sensor;
-unsigned char	but1, but2, but3;
-int			randnum;
+#define GAME_NUM	50
+#define SCALE		8
+
+unsigned long			cycle_counter = 0;
+unsigned int			led_counter=0;
+volatile unsigned int	ms_counter = 0;
+unsigned char			err;
+unsigned char 			game = 1;
+float					temp_sensor;
+unsigned char			but1, but2, but3;
+unsigned int			randnum;
+
+
 
 /********  function prototypes  ***************************/
 void Timer0_Init(void);
+void Timer1_Init(void);
 ISR(SIG_OVERFLOW0);
+ISR(TIMER1_COMPA_vect);
 int main(void);
 
 /********  Timer0 overflow IT Service Routine  ***************************/
@@ -42,35 +54,71 @@ ISR(SIG_OVERFLOW0) // Timer0 overflow
    if (led_counter<15) DPY_TRM_S01__LED_4_OFF();
    else if (led_counter<30) DPY_TRM_S01__LED_4_ON();
    else {
-		//err=dpy_trm_s01__Temp_ReadTEMP(&temp_sensor,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF);
+		err=dpy_trm_s01__Temp_ReadTEMP(&temp_sensor,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF);
 							/* Reads the temperature sensor */
-		randnum = rand();
-		//dpy_trm_s01__7seq_write_number(temp_sensor,1);	/* Writes the temperature data to the    */
-		dpy_trm_s01__7seq_write_number(randnum,0);
+		randnum = rand()/100;
+		dpy_trm_s01__7seq_write_number(temp_sensor,1);	/* Writes the temperature data to the    */
+		dpy_trm_s01__7seq_write_number(ms_counter,0);
+		ms_counter=0;
 		led_counter=0;
 		}
+}
+
+/********  Timer1 output compare IT SR ***********/
+ISR(TIMER1_COMPA_vect)
+{
+	ms_counter++;
+	TCNT1H = 0x00;		//set counter initial value
+	TCNT1L = 0x00;		//
+	 
 }
 
 /********  main program  ***************************/
 int main (void)
 {
    dpy_trm_s01__Init();		// Initialize the DPY dysplay card
-   Timer0_Init();			// Initialize timer0
-   dpy_trm_s01__Temp_Init(TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF);	
+   //Timer0_Init();			// Initialize timer0
+   Timer1_Init();			// timer1 init
+//   dpy_trm_s01__Temp_Init(TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF);	
 							/* Initialisation of temp. sensor */ 
+ 
    SYS_LED_DIR_OUTPUT();	// Set the pin driving the system led to output
    SYS_LED_ON();			// Switch on system led
    sei();					// enable interrupts
-   temp_sensor=24.3; 
-   while(1)
+//   temp_sensor=24.3; 
+ 
+   while(game < GAME_NUM)
    {
-//	_delay_ms(100);
-	but1=DPY_TRM_S01__BUTTON_1_GET_STATE();
-	but2=DPY_TRM_S01__BUTTON_2_GET_STATE();
-	but3=DPY_TRM_S01__BUTTON_3_GET_STATE();
-	if (but1) DPY_TRM_S01__LED_1_ON(); else DPY_TRM_S01__LED_1_OFF();
-	if (but2) DPY_TRM_S01__LED_2_ON(); else DPY_TRM_S01__LED_2_OFF();
-	if (but3) DPY_TRM_S01__LED_3_ON(); else DPY_TRM_S01__LED_3_OFF();
+		//game start
+		ms_counter = 0;
+		randnum = rand();
+		randnum = randnum / SCALE;
+	
+		while(ms_counter < 1000)
+		{
+			
+		}
+	
+		while(ms_counter < 5000)
+		{
+		  /*DPY_TRM_S01__LED_4_OFF();
+			led_counter++;
+			dpy_trm_s01__7seq_write_number(led_counter,0);
+			ms_counter = 0;
+			cycle_counter = 0; */
+			
+			if(ms_counter >= randnum+1000 & ms_counter < randnum+1500)
+			{
+				DPY_TRM_S01__LED_4_ON();
+				if(ms_counter >= randnum+1000+500)
+				{
+					DPY_TRM_S01__LED_4_OFF();
+				}
+			}
+		}
+
+		game++;
+
    }
 
 }
@@ -82,5 +130,21 @@ void Timer0_Init(void)
    TCCR0=0x07;			// Set TIMER0 prescaler to CLK/1024                 
    TCNT0=0;				// Set the counter initial value                    
    TIMSK=_BV(TOIE0);	// Enable TIMER0 overflow interrupt                 
+}
+
+/*******  Timer1 init ***************************************/
+void Timer1_Init(void)
+{
+	TCCR1A = 0x00;		//default
+	TCCR1B = 0x02;		//prescaler to /8
+	TCCR1C = 0x00;		//no force output compare
+	
+	TCNT1H = 0x00;		//set counter initial value
+	TCNT1L = 0x00;		//
+	
+	OCR1AH = 0x03;		//set output compare to 1000dec
+	OCR1AL = 0xE8;
+	
+	TIMSK=_BV(OCIE1A);	//enable TIMER1 output-compare interrupt
 }
 
