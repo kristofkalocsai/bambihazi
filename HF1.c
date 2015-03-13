@@ -11,7 +11,7 @@
 * function:	-reflextest
 *
 *
-*	clock frequency: external xtal, 8MHz
+* clock frequency: external xtal, 8MHz
 *
 *
 *
@@ -23,7 +23,7 @@
 
 #include "mcu_avr_atmega128_api.h" 	// MCU API   
 #include "dpy_trm_s01.h"			// DPY API
-#include <stdlib.h>
+#include <stdlib.h>					// for rand()
 
 
 #define GAME_NUM	50
@@ -37,6 +37,8 @@ unsigned char 			game = 1;
 float					temp_sensor;
 unsigned char			but1, but2, but3;
 unsigned int			randnum;
+unsigned int			randnum1000;
+unsigned int			randnum1500;
 
 
 
@@ -86,13 +88,17 @@ int main (void)
    SYS_LED_ON();			// Switch on system led
    sei();					// enable interrupts
 //   temp_sensor=24.3; 
- 
-   while(game < GAME_NUM)
+
+
+////////////GAME///////////////
+   while(game < GAME_NUM+1)
    {
 		//game start
 		ms_counter = 0;
 		randnum = rand();
-		randnum = randnum / SCALE;
+		randnum = randnum / SCALE; //rand() generates 0 to 32767 /SCALE ~4000
+		randnum1000 = randnum + 1000;
+		randnum1500 = randnum + 1500;
 	
 		while(ms_counter < 1000)
 		{
@@ -106,14 +112,19 @@ int main (void)
 			dpy_trm_s01__7seq_write_number(led_counter,0);
 			ms_counter = 0;
 			cycle_counter = 0; */
+
 			
-			if(ms_counter >= randnum+1000 & ms_counter < randnum+1500)
+			while(ms_counter <= randnum1500)
 			{
-				DPY_TRM_S01__LED_4_ON();
-				if(ms_counter >= randnum+1000+500)
+				if(ms_counter == randnum1000)
+				{
+					DPY_TRM_S01__LED_4_ON();
+				}
+				if(ms_counter == randnum1500)
 				{
 					DPY_TRM_S01__LED_4_OFF();
 				}
+				else break;
 			}
 		}
 
@@ -136,14 +147,14 @@ void Timer0_Init(void)
 void Timer1_Init(void)
 {
 	TCCR1A = 0x00;		//default
-	TCCR1B = 0x02;		//prescaler to /8
+	TCCR1B = 0x02;		//prescaler to /8 -> 1Mhz -> 1us
 	TCCR1C = 0x00;		//no force output compare
 	
 	TCNT1H = 0x00;		//set counter initial value
 	TCNT1L = 0x00;		//
 	
 	OCR1AH = 0x03;		//set output compare to 1000dec
-	OCR1AL = 0xE8;
+	OCR1AL = 0xE8;		//1000us -> 1ms
 	
 	TIMSK=_BV(OCIE1A);	//enable TIMER1 output-compare interrupt
 }
