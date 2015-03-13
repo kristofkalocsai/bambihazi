@@ -26,122 +26,151 @@
 #include <stdlib.h>					// for rand()
 
 
-#define GAME_NUM	50
-#define SCALE		8
+#define GAME_NUM		50
+#define SCALE			8
+#define WINDOW_START	1000
+#define WINDOW_WIDTH	500
 
-unsigned long			cycle_counter = 0;
-unsigned int			led_counter=0;
 volatile unsigned int	ms_counter = 0;
-unsigned char			err;
 unsigned char 			game = 1;
-float					temp_sensor;
-unsigned char			but1, but2, but3;
+unsigned char			pressed;
 unsigned int			randnum;
-unsigned int			randnum1000;
-unsigned int			randnum1500;
+unsigned int			window_start;
+unsigned int			window_end;
+unsigned int 			t_delay;
+signed   int			score = 0;
 
 
 
 /********  function prototypes  ***************************/
-void Timer0_Init(void);
+
 void Timer1_Init(void);
 ISR(SIG_OVERFLOW0);
 ISR(TIMER1_COMPA_vect);
 int main(void);
 
-/********  Timer0 overflow IT Service Routine  ***************************/
-ISR(SIG_OVERFLOW0) // Timer0 overflow
-{
-   led_counter++; 
-   if (led_counter<15) DPY_TRM_S01__LED_4_OFF();
-   else if (led_counter<30) DPY_TRM_S01__LED_4_ON();
-   else {
-		err=dpy_trm_s01__Temp_ReadTEMP(&temp_sensor,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF);
-							/* Reads the temperature sensor */
-		randnum = rand()/100;
-		dpy_trm_s01__7seq_write_number(temp_sensor,1);	/* Writes the temperature data to the    */
-		dpy_trm_s01__7seq_write_number(ms_counter,0);
-		ms_counter=0;
-		led_counter=0;
-		}
-}
+
 
 /********  Timer1 output compare IT SR ***********/
+
 ISR(TIMER1_COMPA_vect)
 {
 	ms_counter++;
 	TCNT1H = 0x00;		//set counter initial value
 	TCNT1L = 0x00;		//
-	 
+	
 }
 
 /********  main program  ***************************/
+
 int main (void)
 {
-   dpy_trm_s01__Init();		// Initialize the DPY dysplay card
-   //Timer0_Init();			// Initialize timer0
+
+///////////GETTING READY////////////////
+
+   dpy_trm_s01__Init();		// Initialize the DPY display card
    Timer1_Init();			// timer1 init
-//   dpy_trm_s01__Temp_Init(TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF);	
-							/* Initialisation of temp. sensor */ 
- 
    SYS_LED_DIR_OUTPUT();	// Set the pin driving the system led to output
    SYS_LED_ON();			// Switch on system led
    sei();					// enable interrupts
-//   temp_sensor=24.3; 
+
 
 
 ////////////GAME///////////////
+
    while(game < GAME_NUM+1)
    {
-		//game start
+		// game start
+		// 1st second, generate rand, calculate hit window,
+		// wait, turn off led1 if a previous game left it on
+
 		ms_counter = 0;
-		randnum = rand();
-		randnum = randnum / SCALE; //rand() generates 0 to 32767 /SCALE ~4000
-		randnum1000 = randnum + 1000;
-		randnum1500 = randnum + 1500;
-	
+		pressed = 0;					
+		
+		randnum = rand() / SCALE; 				//rand() generates 0 to 32767 /SCALE ~4000
+		
+		window_start = randnum + WINDOW_START;		//hit window start
+		window_end = window_start + WINDOW_WIDTH;	// and end
+		
 		while(ms_counter < 1000)
 		{
-			
+
+			if( !DPY_TRM_S01__BUTTON_2_GET_STATE() )
+			{
+				DPY_TRM_S01__LED_1_OFF();
+				if( !pressed )
+				{
+					score = score - 20;				//pre-hit: -20p
+					pressed = 1;
+				}
+			}
 		}
-	
+		
+
+		//seconds 1-5:
+
 		while(ms_counter < 5000)
 		{
-		  /*DPY_TRM_S01__LED_4_OFF();
-			led_counter++;
-			dpy_trm_s01__7seq_write_number(led_counter,0);
-			ms_counter = 0;
-			cycle_counter = 0; */
-
 			
-			while(ms_counter <= randnum1500)
+			if( !DPY_TRM_S01__BUTTON_2_GET_STATE() )
 			{
-				if(ms_counter == randnum1000)
+				if(ms_counter - t_delay > window_start + 200)//debouncing
+				{
+					DPY_TRM_S01__LED_1_OFF();		//switch off hit-led
+				}
+				if( !pressed )
+				{
+					score = score - 20;				//pre-post: -20p
+					pressed = 1;
+				}
+			}
+			
+
+			//hit window
+			while(ms_counter >= window_start && ms_counter <= window_end)
+			{
+				if(ms_counter == window_start)
 				{
 					DPY_TRM_S01__LED_4_ON();
+					dpy_trm_s01__7seq_write_3digit(0xFF,0xDF,0xFF);
 				}
-				if(ms_counter == randnum1500)
+				if(ms_counter == window_end)
 				{
 					DPY_TRM_S01__LED_4_OFF();
+					dpy_trm_s01__7seq_clear_dpy();
+				}
+				if( !DPY_TRM_S01__BUTTON_2_GET_STATE() )
+				{	
+					
+					if(ms_counter - t_delay > window_start + 200)//debouncing
+					{
+						DPY_TRM_S01__LED_1_OFF();		//switch off hit-led
+					}
+					
+					if( !pressed )
+					{
+						t_delay = ms_counter - window_start;	//hit!
+						score = score + (500 - t_delay)/10;
+						pressed = 1;
+						DPY_TRM_S01__LED_1_ON();				//hit-led on
+					}
+
 				}
 				else break;
 			}
 		}
-
-		game++;
+		
+		if(!pressed) score = score - 40;			// -40p for not trying at all
+		
+		game++;										 
 
    }
+   dpy_trm_s01__7seq_write_number(score,0);
+
 
 }
 
 
-/********  Timer0 initialisation  ***************************/
-void Timer0_Init(void)
-{
-   TCCR0=0x07;			// Set TIMER0 prescaler to CLK/1024                 
-   TCNT0=0;				// Set the counter initial value                    
-   TIMSK=_BV(TOIE0);	// Enable TIMER0 overflow interrupt                 
-}
 
 /*******  Timer1 init ***************************************/
 void Timer1_Init(void)
