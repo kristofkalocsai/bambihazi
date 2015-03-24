@@ -23,16 +23,22 @@
 
 #include "mcu_avr_atmega128_api.h" 	// MCU API   
 #include "dpy_trm_s01.h"			// DPY API
+#include "eeprom_fun.h"				// EEPROM functions
 #include <stdlib.h>					// for rand()
 
 
-#define GAME_NUM		50
+#define ROUND_NUM		50
 #define RAND_MAX		4500
 #define WINDOW_START	1000
 #define WINDOW_WIDTH	500
+#define ADDR_GAMENUM	0x0000
+#define ADDR_SCORE_MIN	0X0001
+#define ADDR_SCORE_MAX  0x0003
+#define ADDR_SCORE_AVG	0x0005
 
 volatile unsigned int	ms_counter = 0;
-unsigned char 			game = 1;
+unsigned char 			round = 1;
+unsigned char			game;
 unsigned char			pressed;
 unsigned int			randnum;
 unsigned int			window_start;
@@ -78,7 +84,7 @@ int main (void)
 
 ////////////GAME///////////////
 
-   while(game < GAME_NUM+1)
+   while(round < ROUND_NUM+1)
    {
 		// game start
 		// 1st second, generate rand, calculate hit window,
@@ -87,8 +93,9 @@ int main (void)
 		ms_counter = 0;
 		pressed = 0;					
 		
-		randnum = rand() % RAND_MAX; 				//rand() generates 0 to ... %RAND_MAX < 4500
-		
+		randnum = rand() % RAND_MAX; 				//rand() generates 0 to ..., %RAND_MAX <= 4500
+		//needs further random factor for true random number
+
 		window_start = randnum + WINDOW_START;		//hit window start
 		window_end = window_start + WINDOW_WIDTH;	// and end
 		
@@ -160,10 +167,29 @@ int main (void)
 		
 		if(!pressed) score = score - 40;			// -40p for not trying at all
 		
-		game++;										 
+		round++;										 
 
    }
-   dpy_trm_s01__7seq_write_number(score,0);
+///////////////////GAME END/////////////////////////
+
+
+//needs interrupts disable somewhere here
+	cli();
+
+
+///////////////////SCOREBOARD///////////////////////
+
+
+	dpy_trm_s01__7seq_write_number(score,0);
+
+	//game = EEPROM_read( @gamenum ) + 1;
+	game = EEPROM_read( ADDR_GAMENUM );
+	//avg_score = ((EEPROM_read( @avgscore ) * (game - 1)) + score ) / game 
+	//EEPROM_write( @avgscore, avg_score );
+	//EEPROM_write( @gamenum, game );
+
+
+
 
 
 }

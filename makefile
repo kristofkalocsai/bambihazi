@@ -38,6 +38,7 @@ DIRAVR = c:/WinAVR-20071221
 SRC = $(TARGET).c \
       mcu_avr_atmega128_api.c
 SRC += dpy_trm_s01.c
+SRC += eeprom_fun.c
 
 # MCU name
 MCU = atmega128
