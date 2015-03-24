@@ -131,12 +131,10 @@ int main (void)
 			{
 				if(ms_counter == window_start)
 				{
-					DPY_TRM_S01__LED_4_ON();
 					dpy_trm_s01__7seq_write_3digit(0xFF,0xDF,0xFF);
 				}
 				if(ms_counter == window_end)
 				{
-					DPY_TRM_S01__LED_4_OFF();
 					dpy_trm_s01__7seq_clear_dpy();
 				}
 				if( !DPY_TRM_S01__BUTTON_2_GET_STATE() )
