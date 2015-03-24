@@ -27,7 +27,7 @@
 
 
 #define GAME_NUM		50
-#define SCALE			8
+#define RAND_MAX		4500
 #define WINDOW_START	1000
 #define WINDOW_WIDTH	500
 
@@ -87,7 +87,7 @@ int main (void)
 		ms_counter = 0;
 		pressed = 0;					
 		
-		randnum = rand() / SCALE; 				//rand() generates 0 to 32767 /SCALE ~4000
+		randnum = rand() % RAND_MAX; 				//rand() generates 0 to ... %RAND_MAX < 4500
 		
 		window_start = randnum + WINDOW_START;		//hit window start
 		window_end = window_start + WINDOW_WIDTH;	// and end
