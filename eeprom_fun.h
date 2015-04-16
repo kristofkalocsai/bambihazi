@@ -8,7 +8,7 @@
   ********************************************************************/
 
 
-void EEPROM_write(unsigned int address, unsigned char data);
+void EEPROM_write(unsigned int address, signed char data);
 
 
 /*********************************************************************

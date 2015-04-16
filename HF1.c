@@ -28,13 +28,13 @@
 
 
 #define ROUND_NUM		10
-#define RAND_MAX		4500
+#define RAND_MAX		3500
 #define WINDOW_START	1000
 #define WINDOW_WIDTH	500
-#define ADDR_GAMENUM	0x0F00
-#define ADDR_SCORE_MIN	0x0F01		//2 bytes for big scores
-#define ADDR_SCORE_MAX  0x0F03		//2 bytes
-#define ADDR_SCORE_AVG	0x0F05		//2 bytes
+#define ADDR_GAMENUM	0x0006
+#define ADDR_SCORE_MIN	0x0007		//2 bytes for big scores
+#define ADDR_SCORE_MAX  0x0009		//2 bytes
+#define ADDR_SCORE_AVG	0x000B		//2 bytes
 
 volatile unsigned int	ms_counter = 0;
 unsigned char 			round = 1;
@@ -81,46 +81,6 @@ int main (void)
     Timer1_Init();			// timer1 init
     SYS_LED_DIR_OUTPUT();	// Set the pin driving the system led to output
     SYS_LED_ON();			// Switch on system led
-	
-
-	cli();
-
-	EEPROM_write( ADDR_GAMENUM, 0x00);
-	EEPROM_write16( ADDR_SCORE_MIN, -30);
-	EEPROM_write16( ADDR_SCORE_MAX, 1000);
-	unsigned char GN = EEPROM_read(ADDR_GAMENUM);
-	signed int Smin =  EEPROM_read16(ADDR_SCORE_MIN);
-	signed int Smax =  EEPROM_read16(ADDR_SCORE_MAX);
-
-	if(GN != 0){
-		DPY_TRM_S01__LED_2_ON();
-		dpy_trm_s01__7seq_write_number(GN,0);
-
-		while(1){
-		}
-
-	}
-
-	if(Smin != -30){
-		DPY_TRM_S01__LED_3_ON();
-		dpy_trm_s01__7seq_write_number(Smin,0);
-
-		while(1){
-		}
-
-	}
-
-	if(Smax != 1000){
-		DPY_TRM_S01__LED_4_ON();
-		dpy_trm_s01__7seq_write_number(Smax,0);
-
-		while(1){
-		}
-
-	}
-	
-
-
 
 	while(1){
 
@@ -232,15 +192,15 @@ int main (void)
 	//game = EEPROM_read( @gamenum ) + 1;
 	game = EEPROM_read( ADDR_GAMENUM ) + 1;				//read the number of previous games
 
-	//avg_score = ((EEPROM_read( @avgscore ) * (game - 1)) + score ) / game 
-
 	// average calc: known: previous avg, num of prev. games
 	// newAvg = ((prevAvg * numOfPrevGames) + presentScore / numOfPresentGames)
 	scoreAvg = ((EEPROM_read16( ADDR_SCORE_AVG ) * (game - 1)) + score) / game;
-	//EEPROM_write( @avgscore, avg_score );
-	EEPROM_write16( ADDR_SCORE_AVG , score);
-	//EEPROM_write( @gamenum, game );
-	EEPROM_write16( ADDR_GAMENUM , game );
+
+
+	EEPROM_write16( ADDR_SCORE_AVG , scoreAvg);
+
+
+	EEPROM_write( ADDR_GAMENUM , game );
 
 	scoreMin = EEPROM_read16( ADDR_SCORE_MIN );
 	scoreMax = EEPROM_read16( ADDR_SCORE_MAX );
@@ -248,12 +208,16 @@ int main (void)
 	if( scoreMin > score)		//if smaller then min, write score as new min
 	{
 		EEPROM_write16( ADDR_SCORE_MIN, score);
+		scoreMin = score;
 	}
 	
 	if( scoreMax < score)		//if greater then max, write score as new max
 	{
 		EEPROM_write16( ADDR_SCORE_MAX, score);
+		scoreMax = score;
 	}
+
+	dpy_trm_s01__7seq_clear_dpy();
 	
 	//statistics display
 	while(1){
@@ -272,8 +236,9 @@ int main (void)
 			dpy_trm_s01__7seq_write_number(scoreMin,0);
 
 		}
-		if( DPY_TRM_S01__BUTTON_2_GET_STATE() == 1){
+		if( DPY_TRM_S01__BUTTON_2_GET_STATE() == 0){
 		//restart game
+			round = 1;
 			break;
 		}
 		else {
