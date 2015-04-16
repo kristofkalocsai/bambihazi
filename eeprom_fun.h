@@ -19,5 +19,25 @@ void EEPROM_write(unsigned int address, unsigned char data);
 
 unsigned char EEPROM_read(unsigned int address);
 
+
+/*********************************************************************
+*
+*	Function: EEPROM_write16
+*
+**********************************************************************/
+
+void EEPROM_write16( unsigned int address, signed int data);
+
+
+/*********************************************************************
+
+	Function: EEPROM_read16
+
+*********************************************************************/
+
+signed int EEPROM_read16( unsigned int address );
+
+
+
 #endif
 
