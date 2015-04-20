@@ -1,14 +1,13 @@
 /*
 **************************************************************************************************************
-*                 Test program for the mitmót
+*                 BAMBI HAZI for the mitmót
 *
 * filename:	HF1.c
 * created:	 
 *
-* prerequisites:
-*			- WinAVR 20071221 is installed in the root of drive C (C:\WinAVR-20071221)
+* prerequisites: WinAVR 20071221 is installed in the root of drive C (C:\WinAVR-20071221)
 *
-* function:	-reflextest
+* function:	reflextest
 *
 *
 * clock frequency: external xtal, 8MHz
@@ -27,11 +26,11 @@
 #include <stdlib.h>					// for rand()
 
 
-#define ROUND_NUM		50
+#define ROUND_NUM		10
 #define RAND_MAX		3500
 #define WINDOW_START	1000
 #define WINDOW_WIDTH	500
-#define ADDR_GAMENUM	0x0006
+#define ADDR_GAMENUM	0x0006		//1 byte for numof prev. games
 #define ADDR_SCORE_MIN	0x0007		//2 bytes for big scores
 #define ADDR_SCORE_MAX  0x0009		//2 bytes
 #define ADDR_SCORE_AVG	0x000B		//2 bytes
@@ -82,7 +81,7 @@ int main (void)
     SYS_LED_DIR_OUTPUT();	// Set the pin driving the system led to output
     SYS_LED_ON();			// Switch on system led
 
-	while(1)
+	while(1)				
 	{
 
     	sei();			// enable interrupts
@@ -93,7 +92,7 @@ int main (void)
 	    {
 			// game start
 			// 1st second, generate rand, calculate hit window,
-			// wait, turn off led1 if a previous game left it on
+			// wait, turn off led1 if a previous game left it on and btn is pressed
 		
 			ms_counter = 0;
 			pressed = 0;					
@@ -102,7 +101,6 @@ int main (void)
 			//seeding randnum with temp sensor data
 			//randnum = srand(dpy_trm_s01__Temp_ReadTEMP(&temp_sensor,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF,TMP75_JUMPER_OFF)) % RAND_MAX;
 			randnum = rand() % RAND_MAX; 				//rand() generates 0 to ..., RAND_MAX
-			//needs further random factor for true random number
 
 			window_start = randnum + WINDOW_START;		//hit window start
 			window_end = window_start + WINDOW_WIDTH;	// and end
@@ -136,7 +134,7 @@ int main (void)
 					}
 					if( !pressed )
 					{
-						score = score - 20;				//pre-post: -20p
+						score = score - 20;				//pre-post hit: -20p
 						pressed = 1;
 					}
 				}
@@ -248,7 +246,7 @@ int main (void)
 				round = 1;
 				break;
 			}
-			for(int i;i<1000;i++){
+			for(int i;i<100000;i++){
 				
 			}
 
