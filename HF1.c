@@ -168,12 +168,11 @@ int main (void)
 						}
 
 					}
-					else break;
 				}
 			}
 		
 			if(!pressed) score = score - 40;			// -40p for not trying at all
-		
+			
 			round++;										 
 
 	   }
@@ -246,7 +245,7 @@ int main (void)
 				round = 1;
 				break;
 			}
-			for(int i;i<100000;i++){
+			for(int i;i<10000;i++){
 				
 			}
 
